@@ -1,5 +1,6 @@
 import { Engine } from './core/engine.js';
 import { createConfig } from './core/config.js';
+import * as THREE from 'three';
 
 import { RenderSystem } from './render/index.js';
 import { MaterialSystem } from './materials/index.js';
@@ -48,7 +49,7 @@ engine
   .add(AudioSystem);
 
 try {
-  await engine.init();
+await engine.init();
 } catch (err) {
   console.error('[boot] init failed', err);
   document.body.insertAdjacentHTML(
@@ -59,6 +60,22 @@ BOOT FAILURE\n\n${err.stack ?? err.message}</pre>`
   );
   throw err;
 }
+
+// First-party bridge for the optional Kremityss userscript. The bridge exposes
+// read-only live references from this owned single-player build; it does not
+// alter networking, anti-cheat, or multiplayer state.
+Object.defineProperty(window, '__vibeGame', {
+  configurable: false,
+  value: {},
+});
+Object.defineProperties(window.__vibeGame, {
+  THREE: { get: () => THREE },
+  camera: { get: () => engine.camera },
+  scene: { get: () => engine.scene },
+  player: { get: () => engine.registry.peek('player') },
+  enemies: { get: () => engine.registry.peek('ai') },
+  yawPitch: { get: () => engine.registry.peek('player')?.rig?.rotation ?? engine.camera.rotation },
+});
 
 const shotApi = installShotApi(engine, { capture, lockstep });
 
